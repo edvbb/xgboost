@@ -1,1 +1,3 @@
 # loading
+$ cat .gitattributes
+*.rb linguist-language=Python
