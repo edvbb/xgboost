@@ -166,3 +166,21 @@ data = pd.DataFrame(data=d)
 ax =sns.lmplot(x='pred', y='real', data=data, line_kws={'color': 'red'},  size=4, aspect=1.5)
 sns.plt.ylim(0.4,2.1)
 sns.plt.xlim(0.9,1.55)
+
+
+# можно заточить в xgb с кросс валидацией и визуализируем feature importance
+
+dtrain = xgb.DMatrix(X_train, y_train)
+dtest = xgb.DMatrix(X_test, y_test)
+num_round = 2000
+param = {'max_depth':6, 'min_child_weight' : 3, 'eta':0.01, 'silent':1,'gamma':0,
+         'colsample_bytree': 0.2, 'subsample':0.9, 'reg_alpha':0  }
+bst = xgb.train(param, dtrain, num_round)
+y_pred = bst.predict(dtest)
+font = {'size'   : 15}
+plt.rc('font', **font)
+rcParams['figure.figsize'] = 6, 15
+xgb.plot_importance(bst, color='red')
+plt.title('importance', fontsize = 15)
+plt.yticks(fontsize = 15)
+plt.ylabel('features', fontsize = 15)
