@@ -184,3 +184,9 @@ xgb.plot_importance(bst, color='red')
 plt.title('importance', fontsize = 15)
 plt.yticks(fontsize = 15)
 plt.ylabel('features', fontsize = 15)
+
+# собственно кросс валидация, можем n_estimators уточнить
+bst.cv = xgb.cv(param, dtrain, num_round, nfold=5,  metrics={'rmse'}, seed = 0)
+bst.cv['test-rmse-mean'].argmin()
+# в моем примере значение получилось 1543, поэтому я ради любпытства смотрю окресности
+bst.cv.ix[1540:1550, ['test-rmse-mean']]
