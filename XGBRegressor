@@ -1,0 +1,166 @@
+import numpy as np
+import pandas as pd
+import scipy
+from sklearn import preprocessing
+from datetime import datetime
+from sklearn import cross_validation, metrics
+from sklearn.grid_search import GridSearchCV
+import xgboost as xgb
+from xgboost.sklearn import XGBRegressor
+import sklearn
+from sklearn.pipeline import Pipeline
+import seaborn as sns
+import matplotlib.pylab as plt
+%matplotlib inline
+from matplotlib.pylab import rcParams
+rcParams['figure.figsize'] = 10, 4
+
+df = pd.read_csv('filename.csv', sep=",", encoding='cp1251')
+df.head()
+
+# удаляем строки файла, где целевая переменная имеет пустые значения
+df = df[np.isfinite(df['y'])]
+
+# визуализируем распределение целевой переменной
+sns.distplot(df['y'], bins=20, kde=False)
+sns.plt.xlim(0.4,4)
+
+# числовые признаки
+metr = df[['exp_months',
+           'exp_position',
+           'шкалы теста']]
+# Импутация
+metr = metr.fillna(metr.median())
+
+# целевая переменная и предикторы
+X = metr
+y = df['y']
+
+# train / test 
+X_train,  X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size = 0.25,random_state = 11)
+
+# формируем фолды для кросс валидации и метрику
+cv = cross_validation.StratifiedKFold(y_train, n_folds = 10, shuffle = True, random_state = 0)
+score = 'r2'
+
+# 1 итерация
+regressor1 = XGBRegressor()
+estimator1 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.)) ,
+    ('model_fitting', regressor)
+    ]
+)
+
+# сетка
+estimator.get_params().keys()
+
+param1 = {
+    'model_fitting__learning_rate': [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 1],
+ 'model_fitting__n_estimators': [1,2,3,4,5,6,7,8,9,10,12,15,20,25,50,74,100,200,250,500],
+    'scaling__with_mean' : [0., 0.5]
+}
+
+gsearch1 = GridSearchCV(estimator , param_grid = param1, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch1.fit(X_train, y_train)
+gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_
+
+# 2 итерация
+regressor2 = XGBRegressor(learning_rate = 0.1, n_estimators= 200)
+estimator2 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.5)) ,
+    ('model_fitting', regressor2)
+    ]
+)
+param2 = {
+ 'model_fitting__max_depth':[1,2,3,4,5,6,7,8,9,10],
+ 'model_fitting__min_child_weight': [1,2,3,4,5,6]
+}
+gsearch2 = GridSearchCV(estimator2 , param_grid = param2, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch2.fit(X_train, y_train)
+gsearch2.best_params_, gsearch2.best_score_
+
+# 3 итерация
+regressor3 = XGBRegressor(learning_rate = 0.1, n_estimators= 200, max_depth= 6,min_child_weight= 3)
+estimator3 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.5)) ,
+    ('model_fitting', regressor3)
+    ]
+)
+param3 = {
+ 'model_fitting__gamma' : [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 1] 
+}
+gsearch3 = GridSearchCV(estimator3 , param_grid = param3, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch3.fit(X_train, y_train)
+gsearch3.best_params_, gsearch3.best_score_
+# 4 итерация
+regressor4 = XGBRegressor(learning_rate = 0.1, n_estimators= 200, max_depth= 6,min_child_weight= 3, gamma = 0)
+estimator4 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.5)) ,
+    ('model_fitting', regressor4)
+    ]
+)
+param4 = {
+ 'model_fitting__subsample' : [ 0.5, 0.6, 0.7, 0.8, 0.9, 1] ,
+  'model_fitting__colsample_bytree' : [ 0.1, 0.2,0.3, 0.4,0.5, 0.6, 0.7, 0.8, 0.9, 1] ,  
+}
+gsearch4 = GridSearchCV(estimator4 ,param_grid = param4, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch4.fit(X_train, y_train)
+gsearch4.best_params_, gsearch4.best_score_
+# 5 итерация
+regressor5 = XGBRegressor(learning_rate = 0.1, n_estimators= 200, max_depth= 6,min_child_weight= 3, gamma = 0,
+                         colsample_bytree= 0.2, subsample= 0.9)
+estimator5 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.5)) ,
+    ('model_fitting', regressor5)
+    ]
+)
+param5 = {
+
+    'model_fitting__reg_alpha':[0, 0.001, 0.005,  0.01, 0.05, 0.1, 1]
+}
+gsearch5 = GridSearchCV(estimator5 , param_grid = param5, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch5.fit(X_train, y_train)
+gsearch5.best_params_, gsearch5.best_score_
+
+# снижаем learning_rate и увеличиваем n_estimators
+regressor6 = XGBRegressor( max_depth= 6,min_child_weight= 3, gamma = 0,
+                         colsample_bytree= 0.2, subsample= 0.9, reg_alpha= 0)
+estimator6 = Pipeline(
+            [  ('scaling', preprocessing.StandardScaler(with_mean = 0.5)) ,
+    ('model_fitting', regressor6)
+    ]
+)
+param6 = {
+    'model_fitting__learning_rate': [ 0.1, 0.01],
+ 'model_fitting__n_estimators': [200,2000],
+
+}
+
+gsearch6 = GridSearchCV(estimator6 , param_grid = param6, scoring=score,n_jobs=-1,iid=False, cv=cv)
+%%time
+gsearch6.fit(X_train, y_train)
+gsearch6.best_params_, gsearch6.best_score_
+gsearch6.best_estimator_
+
+# Прогнозные значения
+y_pred = gsearch6.best_estimator_.predict(X_test)
+# метрики считаем на тестовых данных
+estimator6.fit(X_train, y_train)
+a = metrics.mean_absolute_error(y_test, estimator6.predict(X_test))
+b = metrics.r2_score(y_test, estimator6.predict(X_test))
+c = metrics.mean_squared_error(y_test, estimator6.predict(X_test))
+print ('Абсолютная ошибка = %0.3f' % a)
+print ('RMSE = %0.3f' % np.sqrt(c))
+print ('R^2 = %0.3f' % b)
+
+# визуализируем связь
+d = {'pred': y_pred, 'real': y_test}
+data = pd.DataFrame(data=d)
+ax =sns.lmplot(x='pred', y='real', data=data, line_kws={'color': 'red'},  size=4, aspect=1.5)
+sns.plt.ylim(0.4,2.1)
+sns.plt.xlim(0.9,1.55)
